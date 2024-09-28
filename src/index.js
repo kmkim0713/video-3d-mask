@@ -4,6 +4,9 @@ import {
     DrawingUtils
 } from "@mediapipe/tasks-vision";
 
+import './styles.css'; // CSS 파일 가져오기
+
+
 document.addEventListener("DOMContentLoaded", async () => {
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");

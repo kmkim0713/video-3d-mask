@@ -8,15 +8,15 @@ module.exports = {
         path: path.resolve(__dirname, 'dist'),
         clean: true,
     },
-    mode: 'development', // 개발 모드
+    mode: 'development',
     module: {
         rules: [
             {
-                test: /\.css$/i, // .css 파일을 처리
+                test: /\.css$/i,
                 use: ['style-loader', 'css-loader'],
             },
             {
-                test: /\.js$/, // JS 파일을 처리
+                test: /\.js$/,
                 exclude: /node_modules/,
                 use: {
                     loader: 'babel-loader',
@@ -29,14 +29,14 @@ module.exports = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: 'src/index.html', // HTML 템플릿
+            template: 'src/index.html',
         }),
     ],
     devServer: {
         static: {
-            directory: path.join(__dirname, 'dist'), // 정적 파일 제공 디렉토리
+            directory: path.join(__dirname, 'dist'),
         },
         compress: true,
-        port: 9000, // 개발 서버 포트
+        port: 9000,
     },
 };
