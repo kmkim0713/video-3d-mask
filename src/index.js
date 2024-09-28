@@ -1,20 +1,32 @@
 import {
     FaceLandmarker,
     FilesetResolver,
-    DrawingUtils
 } from "@mediapipe/tasks-vision";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import './styles.css';
 
 document.addEventListener("DOMContentLoaded", async () => {
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
+    // 비디오 요소 생성
+    const video = document.createElement('video');
+    video.width = 640; // 비디오 너비 설정
+    video.height = 480; // 비디오 높이 설정
+    video.autoplay = true; // 자동 재생 설정
+    video.style.position = "absolute"; // 절대 위치로 설정
+    video.style.top = "0"; // 화면 상단에 위치
+    video.style.left = "0"; // 화면 왼쪽에 위치
+    video.style.transform = "scaleX(-1)"; // 거울처럼 보이도록 가로 반전
+    video.style.zIndex = "1"; // 비디오가 아바타 뒤에 가도록 설정
 
-    const video = document.getElementById('video'); // HTML에서 비디오 요소 가져오기
+    // 카메라 스트림 설정
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     video.srcObject = stream;
-    video.play();
+
+    // 비디오 요소 추가
+    document.body.appendChild(video);
+
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -60,19 +72,28 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (faceLandmarks.length > 0) {
             const headLandmark = faceLandmarks[0];
             if (avatar) {
-                avatar.position.set(headLandmark.x * 2 - 1, -headLandmark.y * 2 + 0.5, headLandmark.z * 2 - 0.5); // Y 위치를 조정하여 아바타가 더 높게 나오도록 설정
+                // 좌표계를 반전
+                avatar.position.set(-headLandmark.x * 2 + 1, headLandmark.y * 2 - 1, headLandmark.z * 2);
             }
         } else {
             console.warn("유효한 얼굴 랜드마크가 없습니다.");
         }
     };
 
+
+
     const loadAvatarModel = (url) => {
         const loader = new GLTFLoader();
         loader.load(url, (gltf) => {
             avatar = gltf.scene;
-            avatar.scale.set(3, 3, 0.5); // 아바타 크기를 더 작게 조정
+            avatar.scale.set(1.5, 1.5, 1.5); // 아바타 크기를 1.5배로 조정
             scene.add(avatar);
+
+            // 손 숨기기
+            const LeftHand = avatar.getObjectByName("LeftHand");
+            const RightHand = avatar.getObjectByName("RightHand");
+            if (LeftHand) LeftHand.scale.set(0, 0, 0);
+            if (RightHand) RightHand.scale.set(0, 0, 0);
         }, undefined, (error) => {
             console.error("모델 로딩 실패:", error);
         });
@@ -85,8 +106,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         renderer.render(scene, camera);
     };
 
+    // 비디오 재생
+    video.onloadedmetadata = () => {
+        video.play().catch(error => {
+            console.error("비디오 재생 오류:", error);
+        });
+    };
+
     // 비디오와 캔버스를 같은 위치에 배치하기 위해 카메라 위치 조정
-    camera.position.z = 2; // 카메라 Z 위치 조정
+    camera.position.z = 1.5; // 카메라 Z 위치 조정
     initializeFaceLandmarker();
     animate();
 });
