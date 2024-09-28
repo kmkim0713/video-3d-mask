@@ -11,12 +11,15 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "webpack": "^5.64.4",
-    "webpack-cli": "^4.9.1",
-    "webpack-dev-server": "^4.7.1",
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.4",
+    "babel-loader": "^9.2.1",
+    "css-loader": "^6.5.1",
     "html-webpack-plugin": "^5.5.0",
     "style-loader": "^3.3.1",
-    "css-loader": "^6.5.1"
+    "webpack": "^5.64.4",
+    "webpack-cli": "^4.9.1",
+    "webpack-dev-server": "^4.7.1"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.0p"

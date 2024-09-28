@@ -8,24 +8,35 @@ module.exports = {
         path: path.resolve(__dirname, 'dist'),
         clean: true,
     },
-    plugins: [
-        new HtmlWebpackPlugin({
-            template: './src/index.html',
-            filename: 'index.html',
-        }),
-    ],
+    mode: 'development', // 개발 모드
     module: {
         rules: [
             {
-                test: /\.css$/i,
+                test: /\.css$/i, // .css 파일을 처리
                 use: ['style-loader', 'css-loader'],
+            },
+            {
+                test: /\.js$/, // JS 파일을 처리
+                exclude: /node_modules/,
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        presets: ['@babel/preset-env'],
+                    },
+                },
             },
         ],
     },
-    devtool: 'source-map',
+    plugins: [
+        new HtmlWebpackPlugin({
+            template: 'src/index.html', // HTML 템플릿
+        }),
+    ],
     devServer: {
-        static: path.join(__dirname, 'dist'),
+        static: {
+            directory: path.join(__dirname, 'dist'), // 정적 파일 제공 디렉토리
+        },
         compress: true,
-        port: 9000,
+        port: 9000, // 개발 서버 포트
     },
 };
