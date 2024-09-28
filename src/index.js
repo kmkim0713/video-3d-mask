@@ -1,107 +1,63 @@
-import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
+import {
+    FaceLandmarker,
+    FilesetResolver,
+    DrawingUtils
+} from "@mediapipe/tasks-vision";
 
-async function setupCamera() {
-    const video = document.getElementById('video');
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.srcObject = stream;
-    return new Promise((resolve) => {
-        video.onloadedmetadata = () => {
-            resolve(video);
-        };
-    });
-}
+document.addEventListener("DOMContentLoaded", async () => {
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const drawingUtils = new DrawingUtils(ctx);
 
-async function captureImage() {
-    const video = document.getElementById('video');
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const image = document.getElementById('image');
-    image.src = canvas.toDataURL('image/png');
-    image.style.display = 'block';
-}
+    // 카메라 스트림 설정
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
 
-async function setupFaceLandmarker() {
-    const vision = await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
-    );
-    const faceLandmarker = await FaceLandmarker.createFromModelPath(vision,
-        "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
-    );
+            video.onloadedmetadata = () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                video.play();
 
-    return faceLandmarker;
-}
+                // 랜드마크 모델 초기화
+                initializeFaceLandmarker();
+            };
 
-async function main() {
-    await setupCamera();
+        } catch (error) {
+            console.error("카메라 접근에 실패했습니다.", error);
+        }
+    } else {
+        console.error("getUserMedia를 지원하지 않는 브라우저입니다.");
+    }
 
-    const captureButton = document.getElementById('capture');
-    captureButton.addEventListener('click', async () => {
-        await captureImage();
-        const faceLandmarker = await setupFaceLandmarker();
-        const image = document.getElementById('image');
-        const landmarks = faceLandmarker.detect(image);
+    const initializeFaceLandmarker = async () => {
+        const vision = await FilesetResolver.forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+        );
+        const faceLandmarker = await FaceLandmarker.createFromModelPath(vision,
+            "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
+        );
 
-        const canvas = document.getElementById('output');
-        const ctx = canvas.getContext('2d');
+        // 랜드마크 인식 및 그리기
+        detectLandmarks(faceLandmarker);
+    };
+
+    const detectLandmarks = async (faceLandmarker) => {
+        const results = faceLandmarker.detect(video);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        canvas.width = image.width;
-        canvas.height = image.height;
 
-        if (landmarks.faceLandmarks) {
-            const drawingUtils = new DrawingUtils(ctx);
-            const lineWidth = 1.3;
-            for (const landmark of landmarks.faceLandmarks) {
+        if (results.faceLandmarks) {
+            for (const landmarks of results.faceLandmarks) {
                 drawingUtils.drawConnectors(
-                    landmark,
+                    landmarks,
                     FaceLandmarker.FACE_LANDMARKS_TESSELATION,
-                    { color: "#C0C0C070", lineWidth: lineWidth }
-                );
-                drawingUtils.drawConnectors(
-                    landmark,
-                    FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,
-                    { color: "#FF3030", lineWidth: lineWidth }
-                );
-                drawingUtils.drawConnectors(
-                    landmark,
-                    FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW,
-                    { color: "#FF3030", lineWidth: lineWidth }
-                );
-                drawingUtils.drawConnectors(
-                    landmark,
-                    FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,
-                    { color: "#30FF30", lineWidth: lineWidth }
-                );
-                drawingUtils.drawConnectors(
-                    landmark,
-                    FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW,
-                    { color: "#30FF30", lineWidth: lineWidth }
-                );
-                drawingUtils.drawConnectors(
-                    landmark,
-                    FaceLandmarker.FACE_LANDMARKS_FACE_OVAL,
-                    { color: "#E0E0E0", lineWidth: lineWidth }
-                );
-                drawingUtils.drawConnectors(
-                    landmark,
-                    FaceLandmarker.FACE_LANDMARKS_LIPS,
-                    { color: "#E0E0E0", lineWidth: lineWidth }
-                );
-                drawingUtils.drawConnectors(
-                    landmark,
-                    FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS,
-                    { color: "#FF3030", lineWidth: lineWidth }
-                );
-                drawingUtils.drawConnectors(
-                    landmark,
-                    FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS,
-                    { color: "#30FF30", lineWidth: lineWidth }
+                    { color: "#C0C0C070", lineWidth: 1.3 }
                 );
             }
         }
-    });
-}
 
-main();
+        requestAnimationFrame(() => detectLandmarks(faceLandmarker));
+    };
+});
