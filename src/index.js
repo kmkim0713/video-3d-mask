@@ -11,6 +11,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
 
+    const video = document.getElementById('video'); // HTML에서 비디오 요소 가져오기
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+    video.play();
+
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ alpha: true });
@@ -25,13 +30,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     directionalLight.position.set(1, 1, 1).normalize();
     scene.add(directionalLight);
 
-    let avatar = null; // 아바타 초기화
-
-    // 카메라 스트림 설정
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    const video = document.createElement('video'); // 비디오 요소를 생성하되 HTML에 추가하지 않음
-    video.srcObject = stream;
-    video.play();
+    let avatar;
 
     const initializeFaceLandmarker = async () => {
         const vision = await FilesetResolver.forVisionTasks(
@@ -41,7 +40,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
         );
 
-        // 랜드마크 인식 및 그리기
+        // 랜드마크 인식 및 아바타 업데이트
         detectLandmarks(faceLandmarker);
     };
 
@@ -61,7 +60,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (faceLandmarks.length > 0) {
             const headLandmark = faceLandmarks[0];
             if (avatar) {
-                avatar.position.set(headLandmark.x * 2 - 1, -headLandmark.y * 2 + 1, headLandmark.z * 2);
+                avatar.position.set(headLandmark.x * 2 - 1, -headLandmark.y * 2 + 0.5, headLandmark.z * 2 - 0.5); // Y 위치를 조정하여 아바타가 더 높게 나오도록 설정
             }
         } else {
             console.warn("유효한 얼굴 랜드마크가 없습니다.");
@@ -69,16 +68,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     const loadAvatarModel = (url) => {
-        if (!avatar) { // avatar가 아직 로드되지 않았을 때만 로드
-            const loader = new GLTFLoader();
-            loader.load(url, (gltf) => {
-                avatar = gltf.scene;
-                avatar.scale.set(1, 1, 0.2); // 아바타 크기 조절
-                scene.add(avatar);
-            }, undefined, (error) => {
-                console.error("모델 로딩 실패:", error);
-            });
-        }
+        const loader = new GLTFLoader();
+        loader.load(url, (gltf) => {
+            avatar = gltf.scene;
+            avatar.scale.set(3, 3, 0.5); // 아바타 크기를 더 작게 조정
+            scene.add(avatar);
+        }, undefined, (error) => {
+            console.error("모델 로딩 실패:", error);
+        });
     };
 
     loadAvatarModel("https://models.readyplayer.me/6460691aa35b2e5b7106734d.glb?morphTargets=ARKit");
