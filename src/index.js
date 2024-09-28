@@ -13,10 +13,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     const drawingUtils = new DrawingUtils(ctx);
 
     const scene = new THREE.Scene();
+
+    // 카메라 설정
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 1, 3); // 카메라 위치 조정
+
     const renderer = new THREE.WebGLRenderer({ alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
+
+    // 조명 추가
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // 환경 조명
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // 방향 조명
+    directionalLight.position.set(0, 1, 1).normalize();
+    scene.add(directionalLight);
 
     let avatar;
 
@@ -60,6 +72,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (faceLandmarks.length > 0) {
             const headLandmark = faceLandmarks[0];
             if (avatar) {
+                // 얼굴 랜드마크에 따라 아바타 위치 업데이트
                 avatar.position.set(headLandmark.x * 2 - 1, -headLandmark.y * 2 + 1, headLandmark.z * 2);
             }
         } else {
@@ -71,12 +84,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         const loader = new GLTFLoader();
         loader.load(url, (gltf) => {
             avatar = gltf.scene;
-            avatar.scale.set(0.1, 0.1, 0.1);
+            avatar.scale.set(3, 3, 3); // 아바타 크기를 1로 설정
+            avatar.position.set(0, 0, 0); // 아바타의 위치를 중앙으로 설정
             scene.add(avatar);
         }, undefined, (error) => {
             console.error("모델 로딩 실패:", error);
         });
     };
+
+
 
     loadAvatarModel("https://models.readyplayer.me/6460691aa35b2e5b7106734d.glb?morphTargets=ARKit");
 
