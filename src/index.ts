@@ -15,21 +15,29 @@ class AvatarManager {
     private isModelLoaded = false;
     private renderer: THREE.WebGLRenderer;
     private camera: THREE.PerspectiveCamera;
+    private videoElement: HTMLVideoElement; // 비디오 요소 추가
+    private stream: MediaStream; // 미디어 스트림 추가
 
     constructor() {
         this.scene = new THREE.Scene();
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
-        this.camera.position.set(0, 0.5, 1); // Y 위치를 조정하여 아바타와 더 가까이
+        this.camera.position.set(0, 2.5, 1); // Y 위치를 조정하여 아바타와 카메라를 더 가까이
 
         this.renderer.setSize(window.innerWidth, window.innerHeight);
 
-        this.renderer.domElement.id = 'canvas-avatar'; // ID 설정
-        this.renderer.domElement.style.width = '100vw';  // CSS를 통해 너비 설정
-        this.renderer.domElement.style.height = '100vh'; // CSS를 통해 높이 설정
+        // 비디오 요소 생성
+        this.videoElement = document.createElement('video');
+        this.videoElement.autoplay = true;
+        this.videoElement.muted = true; // 비디오 음소거
+        this.videoElement.width = 640; // 비디오 너비 설정
+        this.videoElement.height = 480; // 비디오 높이 설정
 
-        document.body.appendChild(this.renderer.domElement);
-        this.camera.position.z = 1; // 카메라 위치 설정
+        // 비디오 요소에 renderer의 stream을 연결
+        this.stream = this.renderer.domElement.captureStream(30); // 30 FPS
+        this.videoElement.srcObject = this.stream;
+
+        document.body.appendChild(this.videoElement); // 비디오 요소를 DOM에 추가
 
         // 부드러운 환경광 추가
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // 부드러운 환경광
@@ -49,6 +57,10 @@ class AvatarManager {
                 (gltf) => {
                     this.model = gltf.scene;
                     this.model.traverse((obj) => (obj.frustumCulled = false));
+
+                    // 모델 크기 조정, 모델 크기 조정에 따라, "this.camera.position.set" 카메라 위치 조정값도 수정해주어야함
+                    this.model.scale.set(1.5, 1.5, 1.5);
+
                     this.scene.add(this.model);
                     console.log("모델 로드됨:", this.model);
                     // 손을 보이지 않게 설정
@@ -97,6 +109,10 @@ class AvatarManager {
 
             const root = this.model?.getObjectByName("AvatarRoot");
             if (root) {
+                // Adjust scale to a value that keeps the character within view
+                const scaleFactor = Math.min(3.0, 2.0 / Math.max(translation.z, 0.1)); // Scale based on depth
+                root.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
                 root.position.set(
                     translation.x * 0.01,
                     translation.y * 0.01,
@@ -116,14 +132,24 @@ class AvatarManager {
     };
 }
 
+
 document.addEventListener("DOMContentLoaded", async () => {
-    const video = document.getElementById("video") as HTMLVideoElement;
-    const canvas = document.getElementById("canvas") as HTMLCanvasElement;
+    // 비디오 요소 생성
+    const video = document.createElement("video");
+    video.width = 640; // 원하는 비디오 너비
+    video.height = 480; // 원하는 비디오 높이
+    video.autoplay = true; // 자동 재생 설정
+    video.style.display = "none"; // 화면에 보이지 않도록 설정
+
+    // 캔버스 요소 생성
+    const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (!ctx) {
         console.error("Canvas 2D context를 가져오는 데 실패했습니다.");
         return;
     }
+
+    // DrawingUtils 인스턴스 생성
     const drawingUtils = new DrawingUtils(ctx);
     const avatarManager = new AvatarManager(); // 비디오 요소를 AvatarManager에 전달
 
@@ -137,10 +163,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 console.log("비디오 메타데이터 로드됨:", video.videoWidth, video.videoHeight);
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
-                video.play();
 
                 // 랜드마크 모델 초기화
-                await avatarManager.loadModel("https://models.readyplayer.me/66f66a234da54a5409984e8f.glb"); // 모델 URL 추가
+                await avatarManager.loadModel("https://models.readyplayer.me/66f66a234da54a5409984e8f.glb");
                 avatarManager.render(); // 렌더링 시작
                 initializeFaceLandmarker();
             };
@@ -167,7 +192,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 outputFacialTransformationMatrixes: true, // Facial Transformation Matrixes 출력
                 runningMode: "VIDEO", // 비디오 모드로 설정
                 numFaces: 1, // 감지할 얼굴 수
-            });
+            }
+        );
 
         // 랜드마크 인식 및 그리기
         detectLandmarks(faceLandmarker);
@@ -192,3 +218,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         requestAnimationFrame(() => detectLandmarks(faceLandmarker));
     };
 });
+
+
+
