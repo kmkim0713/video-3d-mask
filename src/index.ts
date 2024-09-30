@@ -7,7 +7,7 @@ import {
 import './styles.css'; // CSS 파일 가져오기
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import {decomposeMatrix} from "./utils/decomposeMatrix";
+import { decomposeMatrix } from "./utils/decomposeMatrix";
 
 class AvatarManager {
     private scene: THREE.Scene;
@@ -58,11 +58,11 @@ class AvatarManager {
                     this.model = gltf.scene;
                     this.model.traverse((obj) => (obj.frustumCulled = false));
 
-                    // 모델 크기 조정, 모델 크기 조정에 따라, "this.camera.position.set" 카메라 위치 조정값도 수정해주어야함
+                    // 모델 크기 조정
                     this.model.scale.set(1.2, 1.2, 1.2);
-
                     this.scene.add(this.model);
                     console.log("모델 로드됨:", this.model);
+
                     // 손을 보이지 않게 설정
                     const LeftHand = this.model.getObjectByName("LeftHand");
                     const RightHand = this.model.getObjectByName("RightHand");
@@ -77,9 +77,37 @@ class AvatarManager {
         });
     };
 
+    updateBlendShapes = (results: FaceLandmarkerResult, flipped = true) => {
+        if (!results.faceBlendshapes) return;
+
+        const blendShapes = results.faceBlendshapes[0]?.categories;
+        if (!blendShapes) return;
+
+        this.scene.traverse((obj) => {
+            if ("morphTargetDictionary" in obj && "morphTargetInfluences" in obj) {
+                const morphTargetDictionary = obj.morphTargetDictionary as {
+                    [key: string]: number;
+                };
+                const morphTargetInfluences = obj.morphTargetInfluences as Array<number>;
+
+                for (const { score, categoryName } of blendShapes) {
+                    let updatedCategoryName = categoryName;
+                    if (flipped && categoryName.includes("Left")) {
+                        updatedCategoryName = categoryName.replace("Left", "Right");
+                    } else if (flipped && categoryName.includes("Right")) {
+                        updatedCategoryName = categoryName.replace("Right", "Left");
+                    }
+                    const index = morphTargetDictionary[updatedCategoryName];
+                    morphTargetInfluences[index] = score;
+                }
+            }
+        });
+    };
+
     updateFacialTransforms = (results: FaceLandmarkerResult, flipped = true) => {
         if (!results || !this.isModelLoaded) return;
         this.updateTranslation(results, flipped);
+        this.updateBlendShapes(results, flipped); // blend shapes 업데이트 호출
     };
 
     updateTranslation = (results: FaceLandmarkerResult, flipped = true) => {
@@ -99,7 +127,7 @@ class AvatarManager {
                 translation.x *= -1;
             }
 
-            // Y 위치 조정 (예: 0.2를 빼서 얼굴 위로 올리기)
+            // Y 위치 조정
             translation.y -= 0.2; // 필요에 따라 조정
 
             const head = this.model?.getObjectByName("Head");
@@ -134,14 +162,12 @@ class AvatarManager {
 
 
 document.addEventListener("DOMContentLoaded", async () => {
-    // 비디오 요소 생성
     const video = document.createElement("video");
     video.width = 640; // 원하는 비디오 너비
     video.height = 480; // 원하는 비디오 높이
     video.autoplay = true; // 자동 재생 설정
     video.style.display = "none"; // 화면에 보이지 않도록 설정
 
-    // 캔버스 요소 생성
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (!ctx) {
@@ -149,11 +175,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
     }
 
-    // DrawingUtils 인스턴스 생성
     const drawingUtils = new DrawingUtils(ctx);
     const avatarManager = new AvatarManager(); // 비디오 요소를 AvatarManager에 전달
 
-    // 카메라 스트림 설정
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -165,7 +189,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 canvas.height = video.videoHeight;
 
                 // 랜드마크 모델 초기화
-                await avatarManager.loadModel("https://models.readyplayer.me/66f66a234da54a5409984e8f.glb");
+                // await avatarManager.loadModel("https://models.readyplayer.me/66f66a234da54a5409984e8f.glb");
+                await avatarManager.loadModel("./sample_model.glb");
                 avatarManager.render(); // 렌더링 시작
                 initializeFaceLandmarker();
             };
@@ -185,7 +210,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             vision,
             {
                 baseOptions: {
-                    modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+                    modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task", // 추후 다운로드 변경 가능
                     delegate: "GPU", // GPU를 사용
                 },
                 outputFaceBlendshapes: true, // Blendshapes 출력
@@ -195,7 +220,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         );
 
-        // 랜드마크 인식 및 그리기
         detectLandmarks(faceLandmarker);
     };
 
@@ -218,6 +242,3 @@ document.addEventListener("DOMContentLoaded", async () => {
         requestAnimationFrame(() => detectLandmarks(faceLandmarker));
     };
 });
-
-
-
