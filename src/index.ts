@@ -20,9 +20,13 @@ class AvatarManager {
         this.scene = new THREE.Scene();
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+        this.camera.position.set(0, 0.5, 1); // Y 위치를 조정하여 아바타와 더 가까이
+
         this.renderer.setSize(window.innerWidth, window.innerHeight);
 
         this.renderer.domElement.id = 'canvas-avatar'; // ID 설정
+        this.renderer.domElement.style.width = '100vw';  // CSS를 통해 너비 설정
+        this.renderer.domElement.style.height = '100vh'; // CSS를 통해 높이 설정
 
         document.body.appendChild(this.renderer.domElement);
         this.camera.position.z = 1; // 카메라 위치 설정
@@ -71,21 +75,20 @@ class AvatarManager {
             if (!results.facialTransformationMatrixes) return;
             const matrixes = results.facialTransformationMatrixes[0]?.data;
             const matrix4x4 = new THREE.Matrix4().fromArray(matrixes);
-            // const translation = new THREE.Vector3();
-            // const rotation = new THREE.Quaternion();
-            // const scale = new THREE.Vector3();
 
-            // matrix4x4.decompose(translation, rotation, scale);
-
-            // 회전 및 위치 조정
+            // Matrix 분해
             const { translation, rotation, scale } = decomposeMatrix(matrixes);
             const euler = new THREE.Euler(rotation.x, rotation.y, rotation.z, "ZYX");
             const quaternion = new THREE.Quaternion().setFromEuler(euler);
-            if (flipped) {
+
+            if (!flipped) {
                 quaternion.y *= -1;
                 quaternion.z *= -1;
                 translation.x *= -1;
             }
+
+            // Y 위치 조정 (예: 0.2를 빼서 얼굴 위로 올리기)
+            translation.y -= 0.2; // 필요에 따라 조정
 
             const head = this.model?.getObjectByName("Head");
             if (head) {
@@ -104,6 +107,8 @@ class AvatarManager {
             console.error(e);
         }
     };
+
+
 
     render = () => {
         if (this.isModelLoaded) {
