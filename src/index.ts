@@ -22,7 +22,7 @@ class AvatarManager {
         this.scene = new THREE.Scene();
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
-        this.camera.position.set(0, 2.5, 1); // Y 위치를 조정하여 아바타와 카메라를 더 가까이
+        this.camera.position.set(0, 2.0, 1); // Y 위치를 조정하여 아바타와 카메라를 더 가까이
 
         this.renderer.setSize(window.innerWidth, window.innerHeight);
 
@@ -59,7 +59,7 @@ class AvatarManager {
                     this.model.traverse((obj) => (obj.frustumCulled = false));
 
                     // 모델 크기 조정, 모델 크기 조정에 따라, "this.camera.position.set" 카메라 위치 조정값도 수정해주어야함
-                    this.model.scale.set(1.5, 1.5, 1.5);
+                    this.model.scale.set(1.2, 1.2, 1.2);
 
                     this.scene.add(this.model);
                     console.log("모델 로드됨:", this.model);
