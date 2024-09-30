@@ -4,28 +4,114 @@ import {
     DrawingUtils,
     FaceLandmarkerResult
 } from "@mediapipe/tasks-vision";
+import './styles.css'; // CSS 파일 가져오기
 import * as THREE from "three";
-import { loadGltf } from "./utils/loaders"; // GLTF 로드 유틸리티
-import { decomposeMatrix } from "./utils/decomposeMatrix"; // 행렬 분해 유틸리티
-import "./styles.css";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import {decomposeMatrix} from "./utils/decomposeMatrix";
 
-const scene = new THREE.Scene(); // 씬 생성
+class AvatarManager {
+    private scene: THREE.Scene;
+    private model: THREE.Group | null = null; // 모델을 저장할 변수
+    private isModelLoaded = false;
+    private renderer: THREE.WebGLRenderer;
+    private camera: THREE.PerspectiveCamera;
 
-// 카메라 설정
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 0, 5); // Z축으로 5만큼 이동하여 카메라가 앞을 바라보게 설정
+    constructor(videoElement: HTMLVideoElement) {
+        this.scene = new THREE.Scene();
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
 
-const renderer = new THREE.WebGLRenderer(); // WebGL 렌더러 생성
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement); // 렌더러의 DOM 요소를 추가
+        this.renderer.domElement.id = 'canvas-avatar'; // ID 설정
 
-// 조명 설정
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // 환경광
-scene.add(ambientLight);
+        document.body.appendChild(this.renderer.domElement);
+        this.camera.position.z = 1; // 카메라 위치 설정
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // 방향성 조명
-directionalLight.position.set(0, 1, 1).normalize();
-scene.add(directionalLight);
+        // 부드러운 환경광 추가
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // 부드러운 환경광
+        this.scene.add(ambientLight);
+
+        // 방향광 추가
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // 방향광
+        directionalLight.position.set(1, 1, 1).normalize();
+        this.scene.add(directionalLight);
+    }
+
+    loadModel = async (url: string) => {
+        const loader = new GLTFLoader();
+        return await new Promise((resolve, reject) => {
+            loader.load(
+                url,
+                (gltf) => {
+                    this.model = gltf.scene;
+                    this.model.traverse((obj) => (obj.frustumCulled = false));
+                    this.scene.add(this.model);
+                    console.log("모델 로드됨:", this.model);
+                    // 손을 보이지 않게 설정
+                    const LeftHand = this.model.getObjectByName("LeftHand");
+                    const RightHand = this.model.getObjectByName("RightHand");
+                    LeftHand?.scale.set(0, 0, 0);
+                    RightHand?.scale.set(0, 0, 0);
+                    this.isModelLoaded = true;
+                    resolve(this.model);
+                },
+                undefined,
+                (error) => reject(error)
+            );
+        });
+    };
+
+    updateFacialTransforms = (results: FaceLandmarkerResult, flipped = true) => {
+        if (!results || !this.isModelLoaded) return;
+        this.updateTranslation(results, flipped);
+    };
+
+    updateTranslation = (results: FaceLandmarkerResult, flipped = true) => {
+        try {
+            if (!results.facialTransformationMatrixes) return;
+            const matrixes = results.facialTransformationMatrixes[0]?.data;
+            const matrix4x4 = new THREE.Matrix4().fromArray(matrixes);
+            // const translation = new THREE.Vector3();
+            // const rotation = new THREE.Quaternion();
+            // const scale = new THREE.Vector3();
+
+            // matrix4x4.decompose(translation, rotation, scale);
+
+            // 회전 및 위치 조정
+            const { translation, rotation, scale } = decomposeMatrix(matrixes);
+            const euler = new THREE.Euler(rotation.x, rotation.y, rotation.z, "ZYX");
+            const quaternion = new THREE.Quaternion().setFromEuler(euler);
+            if (flipped) {
+                quaternion.y *= -1;
+                quaternion.z *= -1;
+                translation.x *= -1;
+            }
+
+            const head = this.model?.getObjectByName("Head");
+            if (head) {
+                head.quaternion.slerp(quaternion, 1.0);
+            }
+
+            const root = this.model?.getObjectByName("AvatarRoot");
+            if (root) {
+                root.position.set(
+                    translation.x * 0.01,
+                    translation.y * 0.01,
+                    (translation.z + 50) * 0.02
+                );
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    render = () => {
+        if (this.isModelLoaded) {
+            this.renderer.render(this.scene, this.camera);
+        }
+        requestAnimationFrame(this.render);
+    };
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
     const video = document.getElementById("video") as HTMLVideoElement;
@@ -35,6 +121,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.error("Canvas 2D context를 가져오는 데 실패했습니다.");
         return;
     }
+    const drawingUtils = new DrawingUtils(ctx);
+    const avatarManager = new AvatarManager(video); // 비디오 요소를 AvatarManager에 전달
 
     // 카메라 스트림 설정
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -42,10 +130,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
             video.srcObject = stream;
 
-            video.onloadedmetadata = () => {
+            video.onloadedmetadata = async () => {
+                console.log("비디오 메타데이터 로드됨:", video.videoWidth, video.videoHeight);
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 video.play();
+
+                // 랜드마크 모델 초기화
+                await avatarManager.loadModel("https://models.readyplayer.me/66f66a234da54a5409984e8f.glb"); // 모델 URL 추가
+                avatarManager.render(); // 렌더링 시작
                 initializeFaceLandmarker();
             };
 
@@ -56,8 +149,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.error("getUserMedia를 지원하지 않는 브라우저입니다.");
     }
 
-    let avatar: THREE.Group | null = null;
-
     const initializeFaceLandmarker = async () => {
         const vision = await FilesetResolver.forVisionTasks(
             "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
@@ -67,90 +158,34 @@ document.addEventListener("DOMContentLoaded", async () => {
             {
                 baseOptions: {
                     modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-                    delegate: "GPU",
+                    delegate: "GPU", // GPU를 사용
                 },
-                outputFaceBlendshapes: true,
-                outputFacialTransformationMatrixes: true,
-                runningMode: "VIDEO",
-                numFaces: 1,
-            }
-        );
-
-        // 아바타 모델 로드
-        avatar = await loadAvatarModel('https://models.readyplayer.me/6460691aa35b2e5b7106734d.glb?morphTargets=ARKit');
-        scene.add(avatar); // 아바타를 씬에 추가
+                outputFaceBlendshapes: true, // Blendshapes 출력
+                outputFacialTransformationMatrixes: true, // Facial Transformation Matrixes 출력
+                runningMode: "VIDEO", // 비디오 모드로 설정
+                numFaces: 1, // 감지할 얼굴 수
+            });
 
         // 랜드마크 인식 및 그리기
         detectLandmarks(faceLandmarker);
     };
 
-    const loadAvatarModel = async (url: string): Promise<THREE.Group> => {
-        const gltf = await loadGltf(url);
-        console.log('모델이 로드되었습니다:', gltf); // 모델 로드 확인
-        gltf.scene.traverse((obj) => {
-            obj.frustumCulled = false; // 프러스텀 컬링 비활성화
-        });
-
-        // 손 모델 비활성화
-        const LeftHand = gltf.scene.getObjectByName("LeftHand");
-        const RightHand = gltf.scene.getObjectByName("RightHand");
-        LeftHand?.scale.set(0, 0, 0);
-        RightHand?.scale.set(0, 0, 0);
-
-        return gltf.scene as THREE.Group;
-    };
-
     const detectLandmarks = async (faceLandmarker: FaceLandmarker) => {
         const results: FaceLandmarkerResult = faceLandmarker.detectForVideo(video, Date.now());
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
         if (results.faceLandmarks) {
-            updateAvatarPosition(results); // 얼굴 랜드마크에 따라 아바타 위치 업데이트
+            for (const landmarks of results.faceLandmarks) {
+                drawingUtils.drawConnectors(
+                    landmarks,
+                    FaceLandmarker.FACE_LANDMARKS_TESSELATION,
+                    { color: "#C0C0C070", lineWidth: 1.3 }
+                );
+            }
+            // 아바타 매니저 인스턴스를 통해 랜드마크 업데이트
+            avatarManager.updateFacialTransforms(results);
         }
 
-        // 렌더링
-        renderer.render(scene, camera);
         requestAnimationFrame(() => detectLandmarks(faceLandmarker));
-    };
-
-    const updateAvatarPosition = (results: FaceLandmarkerResult, flipped = true) => {
-        if (!avatar) {
-            console.error('아바타가 로드되지 않았습니다.');
-            return;
-        }
-
-        // facialTransformationMatrixes 확인
-        if (!results.facialTransformationMatrixes || results.facialTransformationMatrixes.length === 0) {
-            console.warn("facialTransformationMatrixes 데이터가 없습니다."); // 디버깅용 로그
-            return;
-        }
-
-        const matrixes = results.facialTransformationMatrixes[0]?.data;
-        if (!matrixes) {
-            console.warn("facialTransformationMatrixes의 첫 번째 요소에 데이터가 없습니다."); // 디버깅용 로그
-            return;
-        }
-
-        const { translation, rotation, scale } = decomposeMatrix(matrixes);
-        const euler = new THREE.Euler(rotation.x, rotation.y, rotation.z, "ZYX");
-        const quaternion = new THREE.Quaternion().setFromEuler(euler);
-
-        if (flipped) {
-            // x축 플립
-            quaternion.y *= -1;
-            quaternion.z *= -1;
-            translation.x *= -1;
-        }
-
-        // 아바타의 위치 조정
-        avatar.position.set(
-            translation.x * 0.01,
-            translation.y * 0.01,
-            (translation.z + 50) * 0.02
-        );
-
-        // Head 회전 업데이트
-        const head = avatar.getObjectByName("Head");
-        if (head) {
-            head.quaternion.slerp(quaternion, 0.1); // 부드럽게 회전
-        }
     };
 });
