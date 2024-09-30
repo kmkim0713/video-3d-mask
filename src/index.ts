@@ -16,7 +16,7 @@ class AvatarManager {
     private renderer: THREE.WebGLRenderer;
     private camera: THREE.PerspectiveCamera;
 
-    constructor(videoElement: HTMLVideoElement) {
+    constructor() {
         this.scene = new THREE.Scene();
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
@@ -108,8 +108,6 @@ class AvatarManager {
         }
     };
 
-
-
     render = () => {
         if (this.isModelLoaded) {
             this.renderer.render(this.scene, this.camera);
@@ -127,7 +125,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
     }
     const drawingUtils = new DrawingUtils(ctx);
-    const avatarManager = new AvatarManager(video); // 비디오 요소를 AvatarManager에 전달
+    const avatarManager = new AvatarManager(); // 비디오 요소를 AvatarManager에 전달
 
     // 카메라 스트림 설정
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
