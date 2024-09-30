@@ -1,16 +1,20 @@
 import {
     FaceLandmarker,
     FilesetResolver,
-    DrawingUtils
+    DrawingUtils,
+    FaceLandmarkerResult
 } from "@mediapipe/tasks-vision";
 
 import './styles.css'; // CSS 파일 가져오기
 
-
 document.addEventListener("DOMContentLoaded", async () => {
-    const video = document.getElementById("video");
-    const canvas = document.getElementById("canvas");
+    const video = document.getElementById("video") as HTMLVideoElement;
+    const canvas = document.getElementById("canvas") as HTMLCanvasElement;
     const ctx = canvas.getContext("2d");
+    if (!ctx) {
+        console.error("Canvas 2D context를 가져오는 데 실패했습니다.");
+        return;
+    }
     const drawingUtils = new DrawingUtils(ctx);
 
     // 카메라 스트림 설정
@@ -47,8 +51,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         detectLandmarks(faceLandmarker);
     };
 
-    const detectLandmarks = async (faceLandmarker) => {
-        const results = faceLandmarker.detect(video);
+    const detectLandmarks = async (faceLandmarker: FaceLandmarker) => {
+        const results: FaceLandmarkerResult = faceLandmarker.detect(video);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         if (results.faceLandmarks) {

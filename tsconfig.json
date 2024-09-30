@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "es6",                       // 변환할 ECMAScript 버전
+    "module": "commonjs",                  // 모듈 시스템
+    "strict": true,                        // 엄격한 타입 검사
+    "esModuleInterop": true,               // ES 모듈과 CommonJS 모듈 간의 호환성
+    "skipLibCheck": true,                  // 라이브러리 검사 건너뛰기
+    "forceConsistentCasingInFileNames": true, // 파일 이름 대소문자 일관성 강제
+    "outDir": "./dist",                    // 출력 디렉토리
+    "rootDir": "./src"                     // 입력 파일 디렉토리
+  },
+  "include": ["src/**/*"],                   // 포함할 파일 패턴
+  "exclude": ["node_modules"]                // 제외할 디렉토리
+}
