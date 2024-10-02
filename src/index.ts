@@ -16,6 +16,8 @@ class AvatarManager {
     private renderer: THREE.WebGLRenderer;
     private camera: THREE.PerspectiveCamera;
     private videoElement: HTMLVideoElement; // 비디오 요소 추가
+    private backgroundCanvasElement: HTMLCanvasElement; // 비디오 요소 추가
+    private backgroundImage: HTMLImageElement;
     private stream: MediaStream; // 미디어 스트림 추가
 
     constructor() {
@@ -38,7 +40,16 @@ class AvatarManager {
         this.stream = this.renderer.domElement.captureStream(30); // 30 FPS
         this.videoElement.srcObject = this.stream;
 
+
+        this.backgroundCanvasElement = document.createElement('canvas');
+        this.backgroundCanvasElement.width = 640;
+        this.backgroundCanvasElement.height = 480;
+
+        this.backgroundImage = new Image();
+        this.setbackGroundImage('./cozy_room_1.jpg');
+
         document.body.appendChild(this.videoElement); // 비디오 요소를 DOM에 추가
+        document.body.appendChild(this.backgroundCanvasElement); // 비디오 요소를 DOM에 추가
 
         // 부드러운 환경광 추가
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // 부드러운 환경광
@@ -49,23 +60,19 @@ class AvatarManager {
         directionalLight.position.set(1, 1, 1).normalize();
         this.scene.add(directionalLight);
 
-
-        // 배경 이미지 텍스처 로드  --> 배경 이미지가 안나옴
-        const textureLoader = new THREE.TextureLoader();
-        textureLoader.load('./cozy_room_1.jpg', (texture) => {
-            console.log('배경 이미지가 성공적으로 로드되었습니다.');
-            const backgroundGeometry = new THREE.PlaneGeometry(16, 9); // 배경 크기 조정
-            const backgroundMaterial = new THREE.MeshBasicMaterial({ map: texture, transparent: true }); // transparent 추가
-            const backgroundMesh = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
-
-            // 배경을 아바타 뒤에 위치시킴
-            backgroundMesh.position.z = -10; // Z 축 방향으로 더 뒤에 위치
-            backgroundMesh.rotation.y = Math.PI; // 배경을 정면으로 향하게 회전
-            this.scene.add(backgroundMesh); // 장면에 배경 추가
-        }, undefined, (error) => {
-            console.error('배경 이미지를 로드하는 데 실패했습니다.', error);
-        });
     }
+
+
+    setbackGroundImage(imageUrl: string) {
+        const ctx = this.backgroundCanvasElement.getContext('2d');
+        this.backgroundImage.src = imageUrl;
+
+        this.backgroundImage.onload = () => {
+            ctx?.drawImage(this.backgroundImage, 0, 0, this.backgroundCanvasElement.width, this.backgroundCanvasElement.height);
+        };
+
+    }
+
 
     loadModel = async (url: string) => {
         const loader = new GLTFLoader();
@@ -207,8 +214,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 canvas.height = video.videoHeight;
 
                 // 랜드마크 모델 초기화
-                // await avatarManager.loadModel("https://models.readyplayer.me/66f66a234da54a5409984e8f.glb");
-                await avatarManager.loadModel("./sample_model.glb"); // 나중에 직접 다운로드해서 넣는 방법 강구 필요
+                await avatarManager.loadModel("https://models.readyplayer.me/66f66a234da54a5409984e8f.glb");
+                // await avatarManager.loadModel("./sample_model.glb"); // 나중에 직접 다운로드해서 넣는 방법 강구 필요
                 avatarManager.render(); // 렌더링 시작
                 initializeFaceLandmarker();
             };
