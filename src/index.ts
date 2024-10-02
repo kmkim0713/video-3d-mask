@@ -145,7 +145,7 @@ class AvatarManager {
         try {
             if (!results.facialTransformationMatrixes) return;
             const matrixes = results.facialTransformationMatrixes[0]?.data;
-            const matrix4x4 = new THREE.Matrix4().fromArray(matrixes);
+            // const matrix4x4 = new THREE.Matrix4().fromArray(matrixes);
 
             // Matrix 분해
             const { translation, rotation, scale } = decomposeMatrix(matrixes);
