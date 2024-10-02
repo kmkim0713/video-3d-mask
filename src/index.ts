@@ -21,8 +21,9 @@ class AvatarManager {
     constructor() {
         this.scene = new THREE.Scene();
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        // this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
-        this.camera.position.set(0, 2.0, 1); // Y 위치를 조정하여 아바타와 카메라를 더 가까이
+        this.camera.position.set(0, 1.3, 1); // Y 위치를 조정하여 아바타와 카메라를 더 가까이
 
         this.renderer.setSize(window.innerWidth, window.innerHeight);
 
@@ -47,6 +48,23 @@ class AvatarManager {
         const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // 방향광
         directionalLight.position.set(1, 1, 1).normalize();
         this.scene.add(directionalLight);
+
+
+        // 배경 이미지 텍스처 로드  --> 배경 이미지가 안나옴
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load('./cozy_room_1.jpg', (texture) => {
+            console.log('배경 이미지가 성공적으로 로드되었습니다.');
+            const backgroundGeometry = new THREE.PlaneGeometry(16, 9); // 배경 크기 조정
+            const backgroundMaterial = new THREE.MeshBasicMaterial({ map: texture, transparent: true }); // transparent 추가
+            const backgroundMesh = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
+
+            // 배경을 아바타 뒤에 위치시킴
+            backgroundMesh.position.z = -10; // Z 축 방향으로 더 뒤에 위치
+            backgroundMesh.rotation.y = Math.PI; // 배경을 정면으로 향하게 회전
+            this.scene.add(backgroundMesh); // 장면에 배경 추가
+        }, undefined, (error) => {
+            console.error('배경 이미지를 로드하는 데 실패했습니다.', error);
+        });
     }
 
     loadModel = async (url: string) => {
@@ -59,7 +77,7 @@ class AvatarManager {
                     this.model.traverse((obj) => (obj.frustumCulled = false));
 
                     // 모델 크기 조정
-                    this.model.scale.set(1.2, 1.2, 1.2);
+                    this.model.scale.set(0.7, 0.7, 0.7);
                     this.scene.add(this.model);
                     console.log("모델 로드됨:", this.model);
 
@@ -190,7 +208,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
                 // 랜드마크 모델 초기화
                 // await avatarManager.loadModel("https://models.readyplayer.me/66f66a234da54a5409984e8f.glb");
-                await avatarManager.loadModel("./sample_model.glb");
+                await avatarManager.loadModel("./sample_model.glb"); // 나중에 직접 다운로드해서 넣는 방법 강구 필요
                 avatarManager.render(); // 렌더링 시작
                 initializeFaceLandmarker();
             };
