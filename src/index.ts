@@ -35,6 +35,9 @@ class AvatarManager {
         this.videoElement.muted = true; // 비디오 음소거
         this.videoElement.width = 640; // 비디오 너비 설정
         this.videoElement.height = 480; // 비디오 높이 설정
+        this.videoElement.style.position = 'absolute';
+        this.videoElement.style.zIndex = '10';
+
 
         // 비디오 요소에 renderer의 stream을 연결
         this.stream = this.renderer.domElement.captureStream(30); // 30 FPS
@@ -44,6 +47,9 @@ class AvatarManager {
         this.backgroundCanvasElement = document.createElement('canvas');
         this.backgroundCanvasElement.width = 640;
         this.backgroundCanvasElement.height = 480;
+        this.backgroundCanvasElement.style.position = 'absolute';
+        this.backgroundCanvasElement.style.zIndex = '1';
+
 
         this.backgroundImage = new Image();
         this.setbackGroundImage('./cozy_room_1.jpg');
