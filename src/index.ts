@@ -116,10 +116,10 @@ class AvatarManager {
 
         this.scene.traverse((obj) => {
             if ("morphTargetDictionary" in obj && "morphTargetInfluences" in obj) {
-                const morphTargetDictionary = obj['morphTargetDictionary'] as {
+                const morphTargetDictionary = obj.morphTargetDictionary as {
                     [key: string]: number;
                 };
-                const morphTargetInfluences = obj['morphTargetDictionary'] as Array<number>;
+                const morphTargetInfluences = obj.morphTargetInfluences as Array<number>;
 
                 for (const { score, categoryName } of blendShapes) {
                     let updatedCategoryName = categoryName;
@@ -145,7 +145,7 @@ class AvatarManager {
         try {
             if (!results.facialTransformationMatrixes) return;
             const matrixes = results.facialTransformationMatrixes[0]?.data;
-            // const matrix4x4 = new THREE.Matrix4().fromArray(matrixes);
+            const matrix4x4 = new THREE.Matrix4().fromArray(matrixes);
 
             // Matrix 분해
             const { translation, rotation, scale } = decomposeMatrix(matrixes);
