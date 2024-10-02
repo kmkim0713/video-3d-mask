@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
     entry: './src/index.ts',
@@ -38,6 +39,15 @@ module.exports = {
         ],
     },
     plugins: [
+        new CopyWebpackPlugin({
+            patterns: [
+                {
+                    from: path.resolve(__dirname, 'src/public'), // 복사할 디렉토리
+                    to: path.resolve(__dirname, 'dist/public'), // 복사할 목적지
+                    noErrorOnMissing: true, // 에러 발생 방지
+                },
+            ],
+        }),
         new HtmlWebpackPlugin({
             template: 'src/index.html',
         }),

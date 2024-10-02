@@ -52,7 +52,7 @@ class AvatarManager {
 
 
         this.backgroundImage = new Image();
-        this.setbackGroundImage('./cozy_room_1.jpg');
+        this.setbackGroundImage('./public/cozy_room_1.jpg');
 
         document.body.appendChild(this.videoElement); // 비디오 요소를 DOM에 추가
         document.body.appendChild(this.backgroundCanvasElement); // 비디오 요소를 DOM에 추가
@@ -220,7 +220,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 canvas.height = video.videoHeight;
 
                 // 랜드마크 모델 초기화
-                await avatarManager.loadModel("https://models.readyplayer.me/66f66a234da54a5409984e8f.glb");
+                await avatarManager.loadModel("./public/model/sample_model.glb");
                 // await avatarManager.loadModel("./sample_model.glb"); // 나중에 직접 다운로드해서 넣는 방법 강구 필요
                 avatarManager.render(); // 렌더링 시작
                 initializeFaceLandmarker();
@@ -236,12 +236,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     const initializeFaceLandmarker = async () => {
         const vision = await FilesetResolver.forVisionTasks(
             "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+        // "./public/model/wasm"
         );
         const faceLandmarker = await FaceLandmarker.createFromOptions(
             vision,
             {
                 baseOptions: {
-                    modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task", // 추후 다운로드 변경 가능
+                    modelAssetPath: "./public/model/sample_face_landmarker.task", // 추후 다운로드 변경 가능
                     delegate: "GPU", // GPU를 사용
                 },
                 outputFaceBlendshapes: true, // Blendshapes 출력
