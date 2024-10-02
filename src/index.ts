@@ -116,10 +116,10 @@ class AvatarManager {
 
         this.scene.traverse((obj) => {
             if ("morphTargetDictionary" in obj && "morphTargetInfluences" in obj) {
-                const morphTargetDictionary = obj.morphTargetDictionary as {
+                const morphTargetDictionary = obj['morphTargetDictionary'] as {
                     [key: string]: number;
                 };
-                const morphTargetInfluences = obj.morphTargetInfluences as Array<number>;
+                const morphTargetInfluences = obj['morphTargetDictionary'] as Array<number>;
 
                 for (const { score, categoryName } of blendShapes) {
                     let updatedCategoryName = categoryName;
