@@ -220,7 +220,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 canvas.height = video.videoHeight;
 
                 // 랜드마크 모델 초기화
-                await avatarManager.loadModel("./public/model/sample_model.glb");
+                await avatarManager.loadModel("./public/model/avatar/sample_model.glb");
                 // await avatarManager.loadModel("./sample_model.glb"); // 나중에 직접 다운로드해서 넣는 방법 강구 필요
                 avatarManager.render(); // 렌더링 시작
                 initializeFaceLandmarker();
@@ -235,14 +235,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const initializeFaceLandmarker = async () => {
         const vision = await FilesetResolver.forVisionTasks(
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
-        // "./public/model/wasm"
+            // "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+        "./public/model/tasks-vision/wasm"
         );
         const faceLandmarker = await FaceLandmarker.createFromOptions(
             vision,
             {
                 baseOptions: {
-                    modelAssetPath: "./public/model/sample_face_landmarker.task", // 추후 다운로드 변경 가능
+                    modelAssetPath: "./public/model/face-landmarker/sample_face_landmarker.task", // 추후 다운로드 변경 가능
                     delegate: "GPU", // GPU를 사용
                 },
                 outputFaceBlendshapes: true, // Blendshapes 출력
